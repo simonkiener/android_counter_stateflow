@@ -7,6 +7,12 @@ import android.widget.Button
 import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
+import kotlinx.coroutines.launch
+import androidx.lifecycle.ViewModelProvider
+import kotlinx.coroutines.flow.collectLatest
 
 class MainActivity : AppCompatActivity() {
 
@@ -14,22 +20,31 @@ class MainActivity : AppCompatActivity() {
     private lateinit var buttonIncrease: Button
     private lateinit var buttonAlert: Button
 
-    private var counter: Int = 0
+    private lateinit var mainViewModel: MyViewModel
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+        val viewModelProvider = ViewModelProvider(this)
+        mainViewModel = viewModelProvider.get(MyViewModel::class.java)
         textViewCounter = findViewById(R.id.textView_counter)
         buttonIncrease = findViewById(R.id.button_increase)
         buttonAlert = findViewById(R.id.button_alert)
-        refreshCounter()
+
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                mainViewModel.counter.collectLatest{
+                    textViewCounter.text = it.toString()
+                }
+            }
+        }
+      //  refreshCounter()
     }
 
     override fun onResume() {
         super.onResume()
         buttonIncrease.setOnClickListener {
-            counter += 1
-            refreshCounter()
+            mainViewModel.increaseCounter()
         }
         buttonAlert.setOnClickListener {
             val intent = Intent(this, DialogActivity::class.java)
@@ -41,9 +56,5 @@ class MainActivity : AppCompatActivity() {
         super.onPause()
         buttonIncrease.setOnClickListener(null)
         buttonAlert.setOnClickListener(null)
-    }
-
-    private fun refreshCounter() {
-        textViewCounter.text = counter.toString()
     }
 }
